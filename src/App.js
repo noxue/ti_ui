@@ -13,7 +13,8 @@ function decodeUnicode(str) {
   });
 }
 
-const api_host = "http://ti.code.noxue.com"
+// const api_host = "http://ti.code.noxue.com"
+const api_host = "http://127.0.0.1:3210"
 
 const { Header, Footer, Sider, Content } = Layout;
 
@@ -35,6 +36,16 @@ const product_columns = [
     title: '当前库存',
     dataIndex: 'count',
     key: 'count',
+  },
+  {
+    title: '包装数量',
+    dataIndex: 'pack_size',
+    key: 'pack_size',
+  },
+  {
+    title: '最小通知包装数',
+    dataIndex: 'notice_size',
+    key: 'notice_size',
   },
   {
     title: '优先级',
@@ -88,6 +99,12 @@ async function getFile(e) {
       var colCount = worksheet.columnCount;
       var data = [];
       for (var i = 1; i <= rowCount; i++) {
+
+        // 出现空行，停止读取
+        if (worksheet.getRow(i).getCell(1).value == null) {
+          break;
+        }
+
         var row = [];
         for (var j = 1; j <= colCount; j++) {
           row.push(worksheet.getCell(i, j).value);
@@ -99,7 +116,6 @@ async function getFile(e) {
       var json = [];
       for (var i = 1; i < data.length; i++) {
         var obj = {};
-
         // 中文转unicode
         for (var j = 0; j < data[i].length; j++) {
           if (data[i][j] != null) {
@@ -110,8 +126,8 @@ async function getFile(e) {
           }
         }
         console.log(data[i][1]);
-        // 数字转字符串
-        var obj = { name: (data[i][0] + "").trim(), comment: data[i][1] };
+
+        var obj = { name: (data[i][0] + "").trim(), comment: data[i][1], pack_size: parseInt(data[i][2]), notice_size: parseInt(data[i][3]) };
         json.push(obj);
       }
       console.log(json);
@@ -143,7 +159,17 @@ function App() {
   // tasks state
   const [tasks, setTasks] = useState([]);
 
+  const [upload, setUpload] = useState(false);
+
   useEffect(() => {
+
+    // 判断url参数是否有upload，如果有，则设置upload为true
+    var url = window.location.href;
+    var index = url.indexOf("?upload");
+    if (index !== -1) {
+      setUpload(true);
+    }
+
     const timer = setInterval(() => {
       axios.get(api_host + '/products')
         .then(function (response) {
@@ -178,13 +204,16 @@ function App() {
           <Breadcrumb.Item>监控</Breadcrumb.Item>
         </Breadcrumb>
         {/* 获取上传文件内容 */}
-        <Row>
-          <Col span={24}>
-            <div>
-              设置要查询的产品：<input type="file" id="file" onChange={getFile} />
-            </div>
-          </Col>
-        </Row>
+        {
+          upload ?
+            <Row>
+              <Col span={24}>
+                <div>
+                  设置要查询的产品：<input type="file" id="file" onChange={getFile} />
+                </div>
+              </Col>
+            </Row> : ""
+        }
 
 
         <Row>
